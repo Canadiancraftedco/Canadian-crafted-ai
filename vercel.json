@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/discover",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/backfill-images",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/instagram-post",
+      "schedule": "0 18 * * *"
+    }
+  ]
+}
