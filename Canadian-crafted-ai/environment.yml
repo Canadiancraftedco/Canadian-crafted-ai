@@ -1,6 +1,0 @@
- 
- dependencies:
-   - python=3.10
-   - flake8
-   - pytest
-   - any-other-required-packages

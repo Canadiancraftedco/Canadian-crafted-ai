@@ -1,1 +1,0 @@
-# Affiliate link AI + signup automation
