@@ -3,40 +3,44 @@ import { createClient } from '@supabase/supabase-js';
 
 export const maxDuration = 60;
 
-async function findImageForProduct(supabase, product) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 500,
-      system: `Find the direct image file URL (ending in .jpg/.png/.webp, or a CDN image URL) for
-a real product photo of the given product on the given brand's site. Respond with ONLY the URL,
-nothing else. If you cannot find a real, direct image URL, respond with exactly: NONE`,
-      messages: [
-        {
-          role: 'user',
-          content: `Product: "${product.name}" by ${product.brand}\nProduct page: ${product.product_url}`,
-        },
-      ],
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-    }),
-  });
+function extractImageFromHtml(html, baseUrl) {
+  // Try og:image first (most reliable, used for link previews)
+  let match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+    || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
 
-  if (!response.ok) return null;
-  const data = await response.json();
-  const text = data.content
-    .filter((b) => b.type === 'text')
-    .map((b) => b.text)
-    .join('')
-    .trim();
+  // Fallback: twitter:image
+  if (!match) {
+    match = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+  }
 
-  if (!text || text === 'NONE' || !text.startsWith('http')) return null;
-  return text;
+  if (!match) return null;
+
+  let url = match[1];
+  // resolve relative URLs
+  if (url.startsWith('//')) url = 'https:' + url;
+  else if (url.startsWith('/')) {
+    const base = new URL(baseUrl);
+    url = `${base.protocol}//${base.host}${url}`;
+  }
+  return url;
+}
+
+async function findImageForProduct(product) {
+  try {
+    const res = await fetch(product.product_url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; CanadianCraftedBot/1.0; +https://canadiancraftedco.com)',
+      },
+      redirect: 'follow',
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    return extractImageFromHtml(html, product.product_url);
+  } catch (err) {
+    console.error(`Fetch failed for ${product.product_url}:`, err.message);
+    return null;
+  }
 }
 
 export async function GET(request) {
@@ -52,7 +56,7 @@ export async function GET(request) {
     .select('id, name, brand, product_url')
     .is('image_url', null)
     .eq('canada_verified', true)
-    .limit(5); // small batch per run to stay well within function time limits
+    .limit(8);
 
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
@@ -62,7 +66,7 @@ export async function GET(request) {
   const results = [];
 
   for (const p of products) {
-    const imageUrl = await findImageForProduct(supabase, p);
+    const imageUrl = await findImageForProduct(p);
     if (imageUrl) {
       const { error: updateErr } = await supabase
         .from('products')
@@ -70,7 +74,7 @@ export async function GET(request) {
         .eq('id', p.id);
       if (!updateErr) updated++;
     }
-    results.push({ name: p.name, found: !!imageUrl });
+    results.push({ name: p.name, found: !!imageUrl, image_url: imageUrl || null });
   }
 
   return NextResponse.json({ ok: true, checked: products.length, updated, results });
