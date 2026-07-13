@@ -7,7 +7,12 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('unverified'); // unverified | verified | all
+  const [search, setSearch] = useState('');
   const [savingId, setSavingId] = useState(null);
+  const [postingId, setPostingId] = useState(null);
+  const [postResult, setPostResult] = useState(null);
+  const [previewingId, setPreviewingId] = useState(null);
+  const [previews, setPreviews] = useState({});
   const router = useRouter();
 
   useEffect(() => {
@@ -47,14 +52,47 @@ export default function AdminDashboard() {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }
 
+  async function previewCaption(product) {
+    setPreviewingId(product.id);
+    const res = await fetch('/api/admin/preview-caption', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product }),
+    });
+    const data = await res.json();
+    setPreviews((prev) => ({ ...prev, [product.id]: data.ok ? data : { error: data.error } }));
+    setPreviewingId(null);
+  }
+
+  async function postToInstagram(id) {
+    setPostingId(id);
+    setPostResult(null);
+    const res = await fetch('/api/admin/instagram-post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    setPostResult({ id, ...data });
+    if (data.ok) {
+      setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, posted_to_instagram: true } : p)));
+    }
+    setPostingId(null);
+  }
+
   async function logout() {
     await fetch('/api/admin/logout', { method: 'POST' });
     router.push('/admin/login');
   }
 
   const visible = products.filter((p) => {
-    if (filter === 'unverified') return !p.canada_verified;
-    if (filter === 'verified') return p.canada_verified;
+    if (filter === 'unverified' && p.canada_verified) return false;
+    if (filter === 'verified' && !p.canada_verified) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const haystack = `${p.name} ${p.brand} ${p.category} ${p.description || ''}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     return true;
   });
 
@@ -70,26 +108,45 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 24 }} className="mono">
-        {['unverified', 'verified', 'all'].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            style={{
-              padding: '7px 14px',
-              borderRadius: 4,
-              border: `1px solid ${filter === f ? 'var(--ember)' : 'rgba(241,236,224,0.2)'}`,
-              background: filter === f ? 'var(--ember)' : 'transparent',
-              color: filter === f ? 'var(--ink)' : 'var(--parchment-dim)',
-              fontSize: 12,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              cursor: 'pointer',
-            }}
-          >
-            {f} ({f === 'all' ? products.length : products.filter((p) => (f === 'verified' ? p.canada_verified : !p.canada_verified)).length})
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="mono" style={{ display: 'flex', gap: 10 }}>
+          {['unverified', 'verified', 'all'].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: 4,
+                border: `1px solid ${filter === f ? 'var(--ember)' : 'rgba(241,236,224,0.2)'}`,
+                background: filter === f ? 'var(--ember)' : 'transparent',
+                color: filter === f ? 'var(--ink)' : 'var(--parchment-dim)',
+                fontSize: 12,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                cursor: 'pointer',
+              }}
+            >
+              {f} ({f === 'all' ? products.length : products.filter((p) => (f === 'verified' ? p.canada_verified : !p.canada_verified)).length})
+            </button>
+          ))}
+        </div>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search name, brand, category…"
+          className="mono"
+          style={{
+            flexGrow: 1,
+            minWidth: 200,
+            padding: '8px 12px',
+            background: 'var(--pine-light)',
+            border: '1px solid rgba(241,236,224,0.2)',
+            borderRadius: 4,
+            color: 'var(--parchment)',
+            fontSize: 12,
+          }}
+        />
       </div>
 
       {loading ? (
@@ -118,6 +175,16 @@ export default function AdminDashboard() {
                 <a href={p.product_url} target="_blank" rel="noopener noreferrer" className="mono" style={{ fontSize: 11, color: 'var(--ember)' }}>
                   {p.product_url}
                 </a>
+                {previews[p.id] && (
+                  previews[p.id].error ? (
+                    <div className="mono" style={{ fontSize: 11, color: '#e08080', marginTop: 8 }}>{previews[p.id].error}</div>
+                  ) : (
+                    <div style={{ marginTop: 10, padding: 10, background: 'var(--pine)', borderRadius: 4, fontSize: 13 }}>
+                      <div style={{ marginBottom: 6 }}>{previews[p.id].caption}</div>
+                      <div className="mono" style={{ fontSize: 11, color: 'var(--lake)' }}>{previews[p.id].hashtags?.join(' ')}</div>
+                    </div>
+                  )
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
@@ -147,8 +214,41 @@ export default function AdminDashboard() {
                 >
                   Delete
                 </button>
-                {p.posted_to_instagram && (
-                  <div className="mono" style={{ fontSize: 10, color: 'var(--parchment-dim)' }}>posted to IG</div>
+                {p.posted_to_instagram ? (
+                  <div className="mono" style={{ fontSize: 10, color: '#6ea86e' }}>✓ posted to IG</div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => previewCaption(p)}
+                      disabled={previewingId === p.id}
+                      className="mono"
+                      style={{ fontSize: 11, padding: '6px 12px', borderRadius: 3, border: '1px solid rgba(241,236,224,0.2)', background: 'transparent', color: 'var(--parchment-dim)', cursor: 'pointer' }}
+                    >
+                      {previewingId === p.id ? 'Writing…' : 'Preview hook'}
+                    </button>
+                    <button
+                      onClick={() => postToInstagram(p.id)}
+                      disabled={postingId === p.id || !p.image_url}
+                      title={!p.image_url ? 'Needs an image first' : ''}
+                      className="mono"
+                      style={{
+                        fontSize: 11,
+                        padding: '6px 12px',
+                        borderRadius: 3,
+                        border: `1px solid ${p.image_url ? 'var(--lake)' : 'rgba(241,236,224,0.15)'}`,
+                        background: 'transparent',
+                        color: p.image_url ? 'var(--lake)' : 'var(--parchment-dim)',
+                        cursor: p.image_url ? 'pointer' : 'not-allowed',
+                      }}
+                    >
+                      {postingId === p.id ? 'Posting…' : 'Post to Instagram'}
+                    </button>
+                  </>
+                )}
+                {postResult?.id === p.id && (
+                  <div className="mono" style={{ fontSize: 10, color: postResult.ok ? '#6ea86e' : '#e08080', maxWidth: 140, textAlign: 'right' }}>
+                    {postResult.ok ? 'Posted!' : (postResult.error || 'Failed')}
+                  </div>
                 )}
               </div>
             </div>

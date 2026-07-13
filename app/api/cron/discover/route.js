@@ -42,7 +42,7 @@ async function discoverForCategory(category) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5',
       max_tokens: 4000,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: `Category: ${category}` }],
