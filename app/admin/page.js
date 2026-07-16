@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifySessionToken } from '@/lib/adminAuth';
-import AdminDashboard from '@/components/AdminDashboard';
+import AdminApp from '@/components/AdminApp';
 
 export default function AdminPage() {
   const token = cookies().get('admin_session')?.value;
@@ -9,5 +9,5 @@ export default function AdminPage() {
     redirect('/admin/login');
   }
 
-  return <AdminDashboard />;
+  return <AdminApp />;
 }

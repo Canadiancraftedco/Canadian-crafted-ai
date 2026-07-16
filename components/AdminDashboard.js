@@ -17,7 +17,7 @@ const inputStyle = {
   fontFamily: 'inherit',
 };
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ embedded = false }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('unverified'); // unverified | verified | all
@@ -31,6 +31,13 @@ export default function AdminDashboard() {
   const [newProduct, setNewProduct] = useState({ name: '', brand: '', category: 'outdoors', price: '', description: '', product_url: '', image_url: '' });
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState('');
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [trendQuery, setTrendQuery] = useState('');
+  const [trendCategory, setTrendCategory] = useState('outdoors');
+  const [trendSearching, setTrendSearching] = useState(false);
+  const [trendResult, setTrendResult] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -125,6 +132,47 @@ export default function AdminDashboard() {
     setShowAddForm(false);
   }
 
+  async function saveEdit(e) {
+    e.preventDefault();
+    setEditError('');
+    if (!editingProduct.name || !editingProduct.brand) {
+      setEditError('Name and brand are required.');
+      return;
+    }
+    setEditSaving(true);
+    const { id, ...updates } = editingProduct;
+    const res = await fetch('/api/admin/products', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, updates }),
+    });
+    setEditSaving(false);
+    if (!res.ok) {
+      const data = await res.json();
+      setEditError(data.error || 'Failed to save');
+      return;
+    }
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+    setEditingProduct(null);
+  }
+
+  async function runTrendSearch() {
+    if (!trendQuery.trim()) return;
+    setTrendSearching(true);
+    setTrendResult(null);
+    const res = await fetch('/api/admin/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: trendQuery, category: trendCategory }),
+    });
+    const data = await res.json();
+    setTrendResult(data);
+    setTrendSearching(false);
+    if (data.ok && data.inserted > 0) {
+      loadProducts();
+    }
+  }
+
   async function logout() {
     await fetch('/api/admin/logout', { method: 'POST' });
     router.push('/admin/login');
@@ -141,20 +189,27 @@ export default function AdminDashboard() {
     return true;
   });
 
+  const Wrapper = embedded ? 'div' : 'div';
+  const wrapperProps = embedded ? {} : { className: 'container', style: { paddingTop: 40, paddingBottom: 60 } };
+
   return (
-    <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
+    <Wrapper {...wrapperProps}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 24 }}>
-        <div>
-          <div className="eyebrow">Admin</div>
-          <h1 style={{ fontSize: 28, margin: 0 }}>Product review</h1>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        {!embedded && (
+          <div>
+            <div className="eyebrow">Admin</div>
+            <h1 style={{ fontSize: 28, margin: 0 }}>Product review</h1>
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
           <button onClick={() => setShowAddForm(true)} className="mono" style={{ background: 'var(--ember)', border: 'none', color: 'var(--ink)', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
             + Add product
           </button>
-          <button onClick={logout} className="mono" style={{ background: 'none', border: '1px solid rgba(241,236,224,0.2)', color: 'var(--parchment-dim)', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
-            Log out
-          </button>
+          {!embedded && (
+            <button onClick={logout} className="mono" style={{ background: 'none', border: '1px solid rgba(241,236,224,0.2)', color: 'var(--parchment-dim)', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+              Log out
+            </button>
+          )}
         </div>
       </div>
 
@@ -173,6 +228,45 @@ export default function AdminDashboard() {
             <div className="mono" style={{ fontSize: 10, color: 'var(--parchment-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{stat.label}</div>
           </div>
         ))}
+      </div>
+
+      <div style={{ marginBottom: 24, padding: 16, background: 'var(--pine-light)', border: '1px solid rgba(241,236,224,0.12)', borderRadius: 4 }}>
+        <div className="mono" style={{ fontSize: 11, color: 'var(--lake)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
+          Search the web for trending products
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            value={trendQuery}
+            onChange={(e) => setTrendQuery(e.target.value)}
+            placeholder="e.g. trending Canadian camping gear 2026"
+            className="mono"
+            style={{ flexGrow: 1, minWidth: 220, padding: '9px 12px', background: 'var(--pine)', border: '1px solid rgba(241,236,224,0.2)', borderRadius: 4, color: 'var(--parchment)', fontSize: 12 }}
+          />
+          <select
+            value={trendCategory}
+            onChange={(e) => setTrendCategory(e.target.value)}
+            className="mono"
+            style={{ padding: '9px 12px', background: 'var(--pine)', border: '1px solid rgba(241,236,224,0.2)', borderRadius: 4, color: 'var(--parchment)', fontSize: 12 }}
+          >
+            {CATEGORY_LIST.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <button
+            onClick={runTrendSearch}
+            disabled={trendSearching || !trendQuery.trim()}
+            className="mono"
+            style={{ padding: '9px 18px', background: 'var(--ember)', border: 'none', borderRadius: 4, color: 'var(--ink)', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
+          >
+            {trendSearching ? 'Searching…' : 'Search web'}
+          </button>
+        </div>
+        {trendResult && (
+          <div className="mono" style={{ marginTop: 10, fontSize: 11, color: trendResult.ok ? 'var(--parchment-dim)' : '#e08080' }}>
+            {trendResult.ok
+              ? `Found ${trendResult.found} candidate(s) from ${trendResult.searchResultCount} search results — ${trendResult.inserted} new added to the database (unverified, review above).`
+              : (trendResult.error || 'Search failed')}
+          </div>
+        )}
       </div>
 
       {showAddForm && (
@@ -298,13 +392,13 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div style={{ flexGrow: 1, minWidth: 0 }}>
+              <div style={{ flexGrow: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setEditingProduct({ ...p })}>
                 <div className="mono" style={{ fontSize: 11, color: 'var(--lake)', textTransform: 'uppercase', marginBottom: 2 }}>
                   {p.brand} · {p.category}
                 </div>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>{p.name}</div>
                 <div style={{ fontSize: 13, color: 'var(--parchment-dim)', marginBottom: 8 }}>{p.description}</div>
-                <a href={p.product_url} target="_blank" rel="noopener noreferrer" className="mono" style={{ fontSize: 11, color: 'var(--ember)' }}>
+                <a href={p.product_url} target="_blank" rel="noopener noreferrer" className="mono" style={{ fontSize: 11, color: 'var(--ember)' }} onClick={(e) => e.stopPropagation()}>
                   {p.product_url}
                 </a>
                 {previews[p.id] && (
@@ -397,6 +491,49 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
-    </div>
+      {editingProduct && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }} onClick={() => setEditingProduct(null)}>
+          <form onSubmit={saveEdit} onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: 'var(--pine-light)', border: '1px solid rgba(241,236,224,0.2)', borderRadius: 6, padding: 28, maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ fontSize: 20, margin: '0 0 20px' }}>Edit product</h2>
+
+            <input type="text" placeholder="Product name *" value={editingProduct.name || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, name: e.target.value }))} style={inputStyle} />
+            <input type="text" placeholder="Brand *" value={editingProduct.brand || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, brand: e.target.value }))} style={inputStyle} />
+
+            <select value={editingProduct.category || 'outdoors'} onChange={(e) => setEditingProduct((p) => ({ ...p, category: e.target.value }))} style={inputStyle}>
+              {CATEGORY_LIST.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <input type="number" placeholder="Price (CAD)" value={editingProduct.price ?? ''} onChange={(e) => setEditingProduct((p) => ({ ...p, price: e.target.value ? Number(e.target.value) : null }))} style={inputStyle} />
+            <textarea placeholder="Description" value={editingProduct.description || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, description: e.target.value }))} style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }} />
+            <input type="text" placeholder="Product URL" value={editingProduct.product_url || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, product_url: e.target.value }))} style={inputStyle} />
+            <input type="text" placeholder="Image URL" value={editingProduct.image_url || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, image_url: e.target.value }))} style={inputStyle} />
+
+            <label className="mono" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--parchment-dim)', marginBottom: 16, cursor: 'pointer' }}>
+              <input type="checkbox" checked={!!editingProduct.canada_verified} onChange={(e) => setEditingProduct((p) => ({ ...p, canada_verified: e.target.checked }))} />
+              Verified Canadian product
+            </label>
+
+            {editError && <div style={{ color: '#e08080', fontSize: 13, marginBottom: 12 }} className="mono">{editError}</div>}
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="submit" disabled={editSaving} className="mono" style={{ flexGrow: 1, padding: '10px', background: 'var(--ember)', border: 'none', borderRadius: 4, color: 'var(--ink)', fontWeight: 600, cursor: 'pointer' }}>
+                {editSaving ? 'Saving…' : 'Save changes'}
+              </button>
+              <button type="button" onClick={() => setEditingProduct(null)} className="mono" style={{ padding: '10px 16px', background: 'transparent', border: '1px solid rgba(241,236,224,0.2)', borderRadius: 4, color: 'var(--parchment-dim)', cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => { deleteProduct(editingProduct.id); setEditingProduct(null); }}
+                className="mono"
+                style={{ padding: '10px 16px', background: 'transparent', border: '1px solid rgba(224,128,128,0.4)', borderRadius: 4, color: '#e08080', cursor: 'pointer' }}
+              >
+                Delete
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </Wrapper>
   );
 }
