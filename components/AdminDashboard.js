@@ -157,14 +157,36 @@ export default function AdminDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {visible.map((p) => (
             <div key={p.id} style={{ display: 'flex', gap: 16, padding: 16, background: 'var(--pine-light)', border: '1px solid rgba(241,236,224,0.1)', borderRadius: 4, alignItems: 'flex-start' }}>
-              {p.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.image_url} alt="" style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
-              ) : (
-                <div className="mono" style={{ width: 70, height: 70, background: 'var(--pine)', borderRadius: 4, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--parchment-dim)', textAlign: 'center' }}>
-                  no image
-                </div>
-              )}
+              <div style={{ flexShrink: 0, width: 70 }}>
+                {p.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.image_url} alt="" style={{ width: 70, height: 70, objectFit: 'cover', borderRadius: 4 }} />
+                ) : (
+                  <div className="mono" style={{ width: 70, height: 70, background: 'var(--pine)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--parchment-dim)', textAlign: 'center' }}>
+                    no image
+                  </div>
+                )}
+                <input
+                  type="text"
+                  defaultValue={p.image_url || ''}
+                  placeholder="paste image URL"
+                  onBlur={(e) => {
+                    const val = e.target.value.trim();
+                    if (val !== (p.image_url || '')) updateProduct(p.id, { image_url: val || null });
+                  }}
+                  className="mono"
+                  style={{
+                    width: 70,
+                    marginTop: 6,
+                    fontSize: 9,
+                    padding: '4px 5px',
+                    background: 'var(--pine)',
+                    border: '1px solid rgba(241,236,224,0.15)',
+                    borderRadius: 3,
+                    color: 'var(--parchment-dim)',
+                  }}
+                />
+              </div>
 
               <div style={{ flexGrow: 1, minWidth: 0 }}>
                 <div className="mono" style={{ fontSize: 11, color: 'var(--lake)', textTransform: 'uppercase', marginBottom: 2 }}>
