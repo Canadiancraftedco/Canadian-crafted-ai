@@ -3,6 +3,20 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+const CATEGORY_LIST = ['outdoors', 'health', 'family', 'fitness'];
+
+const inputStyle = {
+  width: '100%',
+  padding: '10px 12px',
+  marginBottom: 12,
+  background: 'var(--pine)',
+  border: '1px solid rgba(241,236,224,0.2)',
+  borderRadius: 4,
+  color: 'var(--parchment)',
+  fontSize: 14,
+  fontFamily: 'inherit',
+};
+
 export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,6 +27,10 @@ export default function AdminDashboard() {
   const [postResult, setPostResult] = useState(null);
   const [previewingId, setPreviewingId] = useState(null);
   const [previews, setPreviews] = useState({});
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newProduct, setNewProduct] = useState({ name: '', brand: '', category: 'outdoors', price: '', description: '', product_url: '', image_url: '' });
+  const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -80,6 +98,33 @@ export default function AdminDashboard() {
     setPostingId(null);
   }
 
+  async function createProduct(e) {
+    e.preventDefault();
+    setAddError('');
+    if (!newProduct.name || !newProduct.brand || !newProduct.product_url) {
+      setAddError('Name, brand, and product URL are required.');
+      return;
+    }
+    setAddSaving(true);
+    const res = await fetch('/api/admin/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...newProduct,
+        price: newProduct.price ? Number(newProduct.price) : null,
+      }),
+    });
+    const data = await res.json();
+    setAddSaving(false);
+    if (!res.ok) {
+      setAddError(data.error || 'Failed to create product');
+      return;
+    }
+    setProducts((prev) => [data.product, ...prev]);
+    setNewProduct({ name: '', brand: '', category: 'outdoors', price: '', description: '', product_url: '', image_url: '' });
+    setShowAddForm(false);
+  }
+
   async function logout() {
     await fetch('/api/admin/logout', { method: 'POST' });
     router.push('/admin/login');
@@ -103,10 +148,75 @@ export default function AdminDashboard() {
           <div className="eyebrow">Admin</div>
           <h1 style={{ fontSize: 28, margin: 0 }}>Product review</h1>
         </div>
-        <button onClick={logout} className="mono" style={{ background: 'none', border: '1px solid rgba(241,236,224,0.2)', color: 'var(--parchment-dim)', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
-          Log out
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => setShowAddForm(true)} className="mono" style={{ background: 'var(--ember)', border: 'none', color: 'var(--ink)', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+            + Add product
+          </button>
+          <button onClick={logout} className="mono" style={{ background: 'none', border: '1px solid rgba(241,236,224,0.2)', color: 'var(--parchment-dim)', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+            Log out
+          </button>
+        </div>
       </div>
+
+      {/* Database index / stats overview */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 28 }}>
+        {[
+          { label: 'Total products', value: products.length },
+          { label: 'Verified', value: products.filter((p) => p.canada_verified).length },
+          { label: 'Pending review', value: products.filter((p) => !p.canada_verified).length },
+          { label: 'Posted to IG', value: products.filter((p) => p.posted_to_instagram).length },
+          { label: 'Missing image', value: products.filter((p) => !p.image_url).length },
+          ...CATEGORY_LIST.map((c) => ({ label: c, value: products.filter((p) => p.category === c).length })),
+        ].map((stat) => (
+          <div key={stat.label} style={{ padding: '12px 14px', background: 'var(--pine-light)', border: '1px solid rgba(241,236,224,0.1)', borderRadius: 4 }}>
+            <div style={{ fontSize: 22, fontWeight: 600 }}>{stat.value}</div>
+            <div className="mono" style={{ fontSize: 10, color: 'var(--parchment-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {showAddForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}>
+          <form onSubmit={createProduct} style={{ width: '100%', maxWidth: 480, background: 'var(--pine-light)', border: '1px solid rgba(241,236,224,0.2)', borderRadius: 6, padding: 28, maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ fontSize: 20, margin: '0 0 20px' }}>Add product</h2>
+
+            {['name', 'brand'].map((field) => (
+              <input
+                key={field}
+                type="text"
+                placeholder={field === 'name' ? 'Product name *' : 'Brand *'}
+                value={newProduct[field]}
+                onChange={(e) => setNewProduct((p) => ({ ...p, [field]: e.target.value }))}
+                style={inputStyle}
+              />
+            ))}
+
+            <select
+              value={newProduct.category}
+              onChange={(e) => setNewProduct((p) => ({ ...p, category: e.target.value }))}
+              style={inputStyle}
+            >
+              {CATEGORY_LIST.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <input type="number" placeholder="Price (CAD, optional)" value={newProduct.price} onChange={(e) => setNewProduct((p) => ({ ...p, price: e.target.value }))} style={inputStyle} />
+            <textarea placeholder="Description" value={newProduct.description} onChange={(e) => setNewProduct((p) => ({ ...p, description: e.target.value }))} style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }} />
+            <input type="text" placeholder="Product URL *" value={newProduct.product_url} onChange={(e) => setNewProduct((p) => ({ ...p, product_url: e.target.value }))} style={inputStyle} />
+            <input type="text" placeholder="Image URL (optional)" value={newProduct.image_url} onChange={(e) => setNewProduct((p) => ({ ...p, image_url: e.target.value }))} style={inputStyle} />
+
+            {addError && <div style={{ color: '#e08080', fontSize: 13, marginBottom: 12 }} className="mono">{addError}</div>}
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button type="submit" disabled={addSaving} className="mono" style={{ flexGrow: 1, padding: '10px', background: 'var(--ember)', border: 'none', borderRadius: 4, color: 'var(--ink)', fontWeight: 600, cursor: 'pointer' }}>
+                {addSaving ? 'Saving…' : 'Save product'}
+              </button>
+              <button type="button" onClick={() => { setShowAddForm(false); setAddError(''); }} className="mono" style={{ padding: '10px 16px', background: 'transparent', border: '1px solid rgba(241,236,224,0.2)', borderRadius: 4, color: 'var(--parchment-dim)', cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, alignItems: 'center', flexWrap: 'wrap' }}>
         <div className="mono" style={{ display: 'flex', gap: 10 }}>
@@ -201,7 +311,8 @@ export default function AdminDashboard() {
                   previews[p.id].error ? (
                     <div className="mono" style={{ fontSize: 11, color: '#e08080', marginTop: 8 }}>{previews[p.id].error}</div>
                   ) : (
-                    <div style={{ marginTop: 10, padding: 10, background: 'var(--pine)', borderRadius: 4, fontSize: 13 }}>
+                    <div style={{ marginTop: 10, padding: 10, background: 'var(--pine)', borderRadius: 4, fontSize: 13, border: '1px solid var(--lake)' }}>
+                      <div className="mono" style={{ fontSize: 10, color: 'var(--lake)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Generated hook</div>
                       <div style={{ marginBottom: 6 }}>{previews[p.id].caption}</div>
                       <div className="mono" style={{ fontSize: 11, color: 'var(--lake)' }}>{previews[p.id].hashtags?.join(' ')}</div>
                     </div>
@@ -244,9 +355,18 @@ export default function AdminDashboard() {
                       onClick={() => previewCaption(p)}
                       disabled={previewingId === p.id}
                       className="mono"
-                      style={{ fontSize: 11, padding: '6px 12px', borderRadius: 3, border: '1px solid rgba(241,236,224,0.2)', background: 'transparent', color: 'var(--parchment-dim)', cursor: 'pointer' }}
+                      style={{
+                        fontSize: 11,
+                        padding: '6px 12px',
+                        borderRadius: 3,
+                        border: '1px solid var(--lake)',
+                        background: previews[p.id] ? 'transparent' : 'var(--lake)',
+                        color: previews[p.id] ? 'var(--lake)' : 'var(--ink)',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
                     >
-                      {previewingId === p.id ? 'Writing…' : 'Preview hook'}
+                      {previewingId === p.id ? 'Writing…' : previews[p.id] ? 'Regenerate hook' : '✎ Generate hook'}
                     </button>
                     <button
                       onClick={() => postToInstagram(p.id)}

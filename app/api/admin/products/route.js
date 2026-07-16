@@ -25,6 +25,40 @@ export async function GET() {
   return NextResponse.json({ products: data });
 }
 
+export async function POST(request) {
+  if (!requireSession()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await request.json();
+  const required = ['name', 'brand', 'category', 'product_url'];
+  for (const field of required) {
+    if (!body[field]) return NextResponse.json({ error: `${field} is required` }, { status: 400 });
+  }
+
+  const supabase = supabaseAdmin();
+  const { data, error } = await supabase
+    .from('products')
+    .insert({
+      id: crypto.randomUUID(),
+      name: body.name,
+      brand: body.brand,
+      category: body.category,
+      price: body.price ?? null,
+      currency: 'CAD',
+      description: body.description || null,
+      product_url: body.product_url || null,
+      image_url: body.image_url || null,
+      source_site: 'manual_admin_entry',
+      canada_verified: body.canada_verified ?? true,
+      canada_confidence: 1,
+      scraped_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true, product: data });
+}
+
 export async function PATCH(request) {
   if (!requireSession()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
