@@ -14,16 +14,16 @@ export default async function CategoryPage({ params }) {
 
   return (
     <div className="container">
-      <section className="hero" style={{ paddingBottom: 30 }}>
-        <div className="eyebrow">Category</div>
-        <h1 style={{ fontSize: 42 }}>{category.label}</h1>
-        <p>{category.tagline}</p>
+      <section className="section" style={{ paddingBottom: 20 }}>
+        <div className="section-eyebrow">Category</div>
+        <h1 className="section-title" style={{ marginBottom: 12 }}>{category.label}</h1>
+        <p style={{ color: 'var(--parchment-dim)', fontSize: 16, maxWidth: 480 }}>{category.tagline}</p>
       </section>
 
-      <section className="section" style={{ paddingTop: 0 }}>
-        <div className="section-header">
-          <h2>All {category.label.toLowerCase()} products</h2>
-          <div className="count">{products.length} verified</div>
+      <section className="section" style={{ paddingTop: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 28 }}>
+          <h2 className="display" style={{ fontSize: 22, margin: 0 }}>All {category.label.toLowerCase()} products</h2>
+          <div className="mono" style={{ fontSize: 12, color: 'var(--parchment-dim)' }}>{products.length} verified</div>
         </div>
         {products.length > 0 ? (
           <div className="product-grid">

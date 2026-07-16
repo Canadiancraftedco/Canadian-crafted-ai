@@ -1,6 +1,6 @@
 export default function ProductCard({ product }) {
   return (
-    <div className="product-card">
+    <div className="product-card glass">
       <div className="brand">{product.brand}</div>
       <h3>{product.name}</h3>
       <div className="desc">{product.description}</div>
