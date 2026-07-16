@@ -100,7 +100,8 @@ export default function CinematicHome({ categories, featured, pool }) {
           <h2 className="reveal-item section-title">Four categories. One standard: genuinely Canadian.</h2>
           <div className="category-row">
             {categories.map((c, i) => (
-              <a className="category-card glass reveal-item" href={`/${c.slug}`} key={c.slug}>
+              <a className="category-card glass glass-holo reveal-item" href={`/${c.slug}`} key={c.slug}>
+                <span className="glass-holo-sheen" aria-hidden="true" />
                 <div className="num">{String(i + 1).padStart(2, '0')}</div>
                 <h3>{c.label}</h3>
                 <p>{c.tagline}</p>

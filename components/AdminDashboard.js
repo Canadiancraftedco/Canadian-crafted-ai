@@ -2,20 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button, Modal, Input, Select, EmptyState } from './ui';
 
 const CATEGORY_LIST = ['outdoors', 'health', 'family', 'fitness'];
-
-const inputStyle = {
-  width: '100%',
-  padding: '10px 12px',
-  marginBottom: 12,
-  background: 'var(--pine)',
-  border: '1px solid rgba(241,236,224,0.2)',
-  borderRadius: 4,
-  color: 'var(--parchment)',
-  fontSize: 14,
-  fontFamily: 'inherit',
-};
 
 export default function AdminDashboard({ embedded = false }) {
   const [products, setProducts] = useState([]);
@@ -214,13 +203,9 @@ export default function AdminDashboard({ embedded = false }) {
           </div>
         )}
         <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
-          <button onClick={() => setShowAddForm(true)} className="mono" style={{ background: 'var(--ember)', border: 'none', color: 'var(--ink)', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-            + Add product
-          </button>
+          <Button variant="primary" size="sm" onClick={() => setShowAddForm(true)}>+ Add product</Button>
           {!embedded && (
-            <button onClick={logout} className="mono" style={{ background: 'none', border: '1px solid rgba(241,236,224,0.2)', color: 'var(--parchment-dim)', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
-              Log out
-            </button>
+            <Button variant="secondary" size="sm" onClick={logout}>Log out</Button>
           )}
         </div>
       </div>
@@ -302,48 +287,24 @@ export default function AdminDashboard({ embedded = false }) {
         </div>
       </div>
 
-      {showAddForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}>
-          <form onSubmit={createProduct} style={{ width: '100%', maxWidth: 480, background: 'var(--pine-light)', border: '1px solid rgba(241,236,224,0.2)', borderRadius: 6, padding: 28, maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2 style={{ fontSize: 20, margin: '0 0 20px' }}>Add product</h2>
+      <Modal open={showAddForm} onClose={() => { setShowAddForm(false); setAddError(''); }} title="Add product">
+        <form onSubmit={createProduct}>
+          <Input label="Product name" required value={newProduct.name} onChange={(e) => setNewProduct((p) => ({ ...p, name: e.target.value }))} />
+          <Input label="Brand" required value={newProduct.brand} onChange={(e) => setNewProduct((p) => ({ ...p, brand: e.target.value }))} />
+          <Select label="Category" options={CATEGORY_LIST} value={newProduct.category} onChange={(e) => setNewProduct((p) => ({ ...p, category: e.target.value }))} />
+          <Input label="Price (CAD)" type="number" hint="Optional" value={newProduct.price} onChange={(e) => setNewProduct((p) => ({ ...p, price: e.target.value }))} />
+          <Input label="Description" as="textarea" value={newProduct.description} onChange={(e) => setNewProduct((p) => ({ ...p, description: e.target.value }))} />
+          <Input label="Product URL" required value={newProduct.product_url} onChange={(e) => setNewProduct((p) => ({ ...p, product_url: e.target.value }))} />
+          <Input label="Image URL" hint="Optional" value={newProduct.image_url} onChange={(e) => setNewProduct((p) => ({ ...p, image_url: e.target.value }))} />
 
-            {['name', 'brand'].map((field) => (
-              <input
-                key={field}
-                type="text"
-                placeholder={field === 'name' ? 'Product name *' : 'Brand *'}
-                value={newProduct[field]}
-                onChange={(e) => setNewProduct((p) => ({ ...p, [field]: e.target.value }))}
-                style={inputStyle}
-              />
-            ))}
+          {addError && <div className="field-desc-error mono" style={{ marginBottom: 12 }}>{addError}</div>}
 
-            <select
-              value={newProduct.category}
-              onChange={(e) => setNewProduct((p) => ({ ...p, category: e.target.value }))}
-              style={inputStyle}
-            >
-              {CATEGORY_LIST.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-
-            <input type="number" placeholder="Price (CAD, optional)" value={newProduct.price} onChange={(e) => setNewProduct((p) => ({ ...p, price: e.target.value }))} style={inputStyle} />
-            <textarea placeholder="Description" value={newProduct.description} onChange={(e) => setNewProduct((p) => ({ ...p, description: e.target.value }))} style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }} />
-            <input type="text" placeholder="Product URL *" value={newProduct.product_url} onChange={(e) => setNewProduct((p) => ({ ...p, product_url: e.target.value }))} style={inputStyle} />
-            <input type="text" placeholder="Image URL (optional)" value={newProduct.image_url} onChange={(e) => setNewProduct((p) => ({ ...p, image_url: e.target.value }))} style={inputStyle} />
-
-            {addError && <div style={{ color: '#e08080', fontSize: 13, marginBottom: 12 }} className="mono">{addError}</div>}
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-              <button type="submit" disabled={addSaving} className="mono" style={{ flexGrow: 1, padding: '10px', background: 'var(--ember)', border: 'none', borderRadius: 4, color: 'var(--ink)', fontWeight: 600, cursor: 'pointer' }}>
-                {addSaving ? 'Saving…' : 'Save product'}
-              </button>
-              <button type="button" onClick={() => { setShowAddForm(false); setAddError(''); }} className="mono" style={{ padding: '10px 16px', background: 'transparent', border: '1px solid rgba(241,236,224,0.2)', borderRadius: 4, color: 'var(--parchment-dim)', cursor: 'pointer' }}>
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+            <Button type="submit" variant="primary" loading={addSaving} fullWidth>Save product</Button>
+            <Button type="button" variant="secondary" onClick={() => { setShowAddForm(false); setAddError(''); }}>Cancel</Button>
+          </div>
+        </form>
+      </Modal>
 
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, alignItems: 'center', flexWrap: 'wrap' }}>
         <div className="mono" style={{ display: 'flex', gap: 10 }}>
@@ -387,9 +348,9 @@ export default function AdminDashboard({ embedded = false }) {
       </div>
 
       {loading ? (
-        <div className="empty-state">Loading…</div>
+        <EmptyState title="Loading…" />
       ) : visible.length === 0 ? (
-        <div className="empty-state">Nothing here.</div>
+        <EmptyState title="Nothing here" description="Try a different filter or search term." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {visible.map((p) => (
@@ -524,49 +485,32 @@ export default function AdminDashboard({ embedded = false }) {
           ))}
         </div>
       )}
-      {editingProduct && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }} onClick={() => setEditingProduct(null)}>
-          <form onSubmit={saveEdit} onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: 'var(--pine-light)', border: '1px solid rgba(241,236,224,0.2)', borderRadius: 6, padding: 28, maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2 style={{ fontSize: 20, margin: '0 0 20px' }}>Edit product</h2>
-
-            <input type="text" placeholder="Product name *" value={editingProduct.name || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, name: e.target.value }))} style={inputStyle} />
-            <input type="text" placeholder="Brand *" value={editingProduct.brand || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, brand: e.target.value }))} style={inputStyle} />
-
-            <select value={editingProduct.category || 'outdoors'} onChange={(e) => setEditingProduct((p) => ({ ...p, category: e.target.value }))} style={inputStyle}>
-              {CATEGORY_LIST.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-
-            <input type="number" placeholder="Price (CAD)" value={editingProduct.price ?? ''} onChange={(e) => setEditingProduct((p) => ({ ...p, price: e.target.value ? Number(e.target.value) : null }))} style={inputStyle} />
-            <textarea placeholder="Description" value={editingProduct.description || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, description: e.target.value }))} style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }} />
-            <input type="text" placeholder="Product URL" value={editingProduct.product_url || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, product_url: e.target.value }))} style={inputStyle} />
-            <input type="text" placeholder="Image URL" value={editingProduct.image_url || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, image_url: e.target.value }))} style={inputStyle} />
+      <Modal open={!!editingProduct} onClose={() => setEditingProduct(null)} title="Edit product">
+        {editingProduct && (
+          <form onSubmit={saveEdit}>
+            <Input label="Product name" required value={editingProduct.name || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, name: e.target.value }))} />
+            <Input label="Brand" required value={editingProduct.brand || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, brand: e.target.value }))} />
+            <Select label="Category" options={CATEGORY_LIST} value={editingProduct.category || 'outdoors'} onChange={(e) => setEditingProduct((p) => ({ ...p, category: e.target.value }))} />
+            <Input label="Price (CAD)" type="number" value={editingProduct.price ?? ''} onChange={(e) => setEditingProduct((p) => ({ ...p, price: e.target.value ? Number(e.target.value) : null }))} />
+            <Input label="Description" as="textarea" value={editingProduct.description || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, description: e.target.value }))} />
+            <Input label="Product URL" value={editingProduct.product_url || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, product_url: e.target.value }))} />
+            <Input label="Image URL" value={editingProduct.image_url || ''} onChange={(e) => setEditingProduct((p) => ({ ...p, image_url: e.target.value }))} />
 
             <label className="mono" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--parchment-dim)', marginBottom: 16, cursor: 'pointer' }}>
               <input type="checkbox" checked={!!editingProduct.canada_verified} onChange={(e) => setEditingProduct((p) => ({ ...p, canada_verified: e.target.checked }))} />
               Verified Canadian product
             </label>
 
-            {editError && <div style={{ color: '#e08080', fontSize: 13, marginBottom: 12 }} className="mono">{editError}</div>}
+            {editError && <div className="field-desc-error mono" style={{ marginBottom: 12 }}>{editError}</div>}
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button type="submit" disabled={editSaving} className="mono" style={{ flexGrow: 1, padding: '10px', background: 'var(--ember)', border: 'none', borderRadius: 4, color: 'var(--ink)', fontWeight: 600, cursor: 'pointer' }}>
-                {editSaving ? 'Saving…' : 'Save changes'}
-              </button>
-              <button type="button" onClick={() => setEditingProduct(null)} className="mono" style={{ padding: '10px 16px', background: 'transparent', border: '1px solid rgba(241,236,224,0.2)', borderRadius: 4, color: 'var(--parchment-dim)', cursor: 'pointer' }}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => { deleteProduct(editingProduct.id); setEditingProduct(null); }}
-                className="mono"
-                style={{ padding: '10px 16px', background: 'transparent', border: '1px solid rgba(224,128,128,0.4)', borderRadius: 4, color: '#e08080', cursor: 'pointer' }}
-              >
-                Delete
-              </button>
+              <Button type="submit" variant="primary" loading={editSaving} fullWidth>Save changes</Button>
+              <Button type="button" variant="secondary" onClick={() => setEditingProduct(null)}>Cancel</Button>
+              <Button type="button" variant="danger" onClick={() => { deleteProduct(editingProduct.id); setEditingProduct(null); }}>Delete</Button>
             </div>
           </form>
-        </div>
-      )}
+        )}
+      </Modal>
     </Wrapper>
   );
 }

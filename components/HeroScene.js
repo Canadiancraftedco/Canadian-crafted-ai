@@ -66,6 +66,57 @@ function Particles() {
   );
 }
 
+function NeonParticles() {
+  const pointsRef = useRef();
+  const count = 220;
+
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 22;
+      arr[i * 3 + 1] = Math.random() * 10 - 1;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 18 - 2;
+    }
+    return arr;
+  }, []);
+
+  useFrame(({ clock }) => {
+    if (pointsRef.current) {
+      const t = clock.getElapsedTime();
+      pointsRef.current.rotation.y = -t * 0.03;
+      pointsRef.current.position.y = Math.sin(t * 0.2) * 0.4;
+    }
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial color="#4FE8D8" size={0.06} transparent opacity={0.75} sizeAttenuation />
+    </points>
+  );
+}
+
+function HoloRing() {
+  const ringRef = useRef();
+
+  useFrame(({ clock }) => {
+    if (ringRef.current) {
+      const t = clock.getElapsedTime();
+      ringRef.current.rotation.x = Math.PI / 2.4 + Math.sin(t * 0.1) * 0.15;
+      ringRef.current.rotation.z = t * 0.06;
+    }
+  });
+
+  return (
+    <mesh ref={ringRef} position={[4, 1.5, -6]}>
+      <torusGeometry args={[2.4, 0.01, 8, 90]} />
+      <meshBasicMaterial color="#B98CFF" transparent opacity={0.4} />
+    </mesh>
+  );
+}
+
 export default function HeroScene() {
   return (
     <Canvas
@@ -78,6 +129,8 @@ export default function HeroScene() {
       <fog attach="fog" args={['#0c1310', 9, 30]} />
       <Terrain />
       <Particles />
+      <NeonParticles />
+      <HoloRing />
     </Canvas>
   );
 }
