@@ -116,6 +116,16 @@ export default function CinematicHome({ categories, featured }) {
             <div className="product-grid">
               {featured.map((p) => (
                 <div className="product-card glass reveal-item" key={p.id}>
+                  <div className="product-card-image">
+                    {p.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.image_url} alt={p.name} loading="lazy" />
+                    ) : (
+                      <div className="product-card-image-fallback">
+                        <span className="mono">{p.brand}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="brand">{p.brand}</div>
                   <h3>{p.name}</h3>
                   <div className="desc">{p.description}</div>
