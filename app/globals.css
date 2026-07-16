@@ -198,3 +198,63 @@ footer { border-top: 1px solid rgba(236, 233, 225, 0.1); padding: 30px 0; margin
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* ---------- Weather widget ---------- */
+.weather-widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  font-size: 13px;
+  color: var(--parchment-dim);
+}
+.weather-temp { font-family: var(--font-display), sans-serif; font-size: 24px; font-weight: 600; color: var(--parchment); }
+.weather-meta { display: flex; flex-direction: column; gap: 2px; }
+.weather-place { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--lake); }
+.weather-condition { font-size: 13px; color: var(--parchment-dim); }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--parchment-dim); display: inline-block; }
+.dot.pulsing { background: var(--lake); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+/* ---------- Search bar ---------- */
+.search-bar-wrap { position: relative; max-width: 480px; width: 100%; z-index: 20; }
+.search-bar { display: flex; align-items: center; gap: 12px; padding: 14px 20px; }
+.search-icon { font-size: 16px; color: var(--lake); }
+.search-bar input {
+  flex-grow: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--parchment);
+  font-size: 15px;
+  font-family: var(--font-body), sans-serif;
+}
+.search-bar input::placeholder { color: var(--parchment-dim); }
+.search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.search-result-item:hover { background: rgba(79, 184, 184, 0.1); }
+.search-result-item img, .search-result-fallback {
+  width: 40px; height: 40px; border-radius: 4px; object-fit: cover; flex-shrink: 0;
+}
+.search-result-fallback { background: var(--pine); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--parchment-dim); }
+.search-result-brand { font-size: 10px; color: var(--lake); text-transform: uppercase; }
+.search-result-name { font-size: 13px; }
+.search-empty { padding: 12px; text-align: center; font-size: 12px; }
