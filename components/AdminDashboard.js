@@ -38,6 +38,8 @@ export default function AdminDashboard({ embedded = false }) {
   const [trendCategory, setTrendCategory] = useState('outdoors');
   const [trendSearching, setTrendSearching] = useState(false);
   const [trendResult, setTrendResult] = useState(null);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -173,6 +175,16 @@ export default function AdminDashboard({ embedded = false }) {
     }
   }
 
+  async function runBackfill() {
+    setBackfilling(true);
+    setBackfillResult(null);
+    const res = await fetch('/api/admin/backfill-images', { method: 'POST' });
+    const data = await res.json();
+    setBackfillResult(data);
+    setBackfilling(false);
+    if (data.ok && data.updated > 0) loadProducts();
+  }
+
   async function logout() {
     await fetch('/api/admin/logout', { method: 'POST' });
     router.push('/admin/login');
@@ -267,6 +279,27 @@ export default function AdminDashboard({ embedded = false }) {
               : (trendResult.error || 'Search failed')}
           </div>
         )}
+      </div>
+
+      <div style={{ marginBottom: 24, padding: 16, background: 'var(--pine-light)', border: '1px solid rgba(241,236,224,0.12)', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <div className="mono" style={{ fontSize: 11, color: 'var(--lake)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Missing images: {products.filter((p) => !p.image_url).length}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {backfillResult && (
+            <div className="mono" style={{ fontSize: 11, color: 'var(--parchment-dim)' }}>
+              {backfillResult.ok ? `Checked ${backfillResult.checked}, found ${backfillResult.updated}` : backfillResult.error}
+            </div>
+          )}
+          <button
+            onClick={runBackfill}
+            disabled={backfilling}
+            className="mono"
+            style={{ padding: '9px 16px', background: 'var(--lake)', border: 'none', borderRadius: 4, color: 'var(--ink)', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
+          >
+            {backfilling ? 'Searching…' : 'Find images now'}
+          </button>
+        </div>
       </div>
 
       {showAddForm && (
