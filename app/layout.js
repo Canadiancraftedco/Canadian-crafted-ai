@@ -21,6 +21,7 @@ export default function RootLayout({ children }) {
                 Canadian Crafted <span className="leaf">Co.</span>
               </div>
               <div className="nav-links">
+                <a href="/trip-planner">Trip Planner</a>
                 <a href="/outdoors">Outdoors</a>
                 <a href="/health">Health</a>
                 <a href="/family">Family</a>
