@@ -15,7 +15,7 @@ export async function POST() {
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    const result = await backfillImages(supabase, 4);
+    const result = await backfillImages(supabase, 10);
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
