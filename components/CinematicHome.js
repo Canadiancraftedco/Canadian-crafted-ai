@@ -6,6 +6,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import SearchBar from './SearchBar';
 import LocationWeather from './LocationWeather';
+import { Button } from './ui';
 
 const HeroScene = dynamic(() => import('./HeroScene'), { ssr: false });
 
@@ -107,6 +108,21 @@ export default function CinematicHome({ categories, featured, pool }) {
                 <p>{c.tagline}</p>
               </a>
             ))}
+          </div>
+        </section>
+
+        <section className="section reveal-section">
+          <div className="trip-banner reveal-item" style={{ marginBottom: 0 }}>
+            <span className="trip-banner-icon">🏕️</span>
+            <div className="section-eyebrow">Plan a trip</div>
+            <h2 className="section-title" style={{ marginBottom: 14 }}>
+              Real parks, real trails, a meal plan and grocery list built for your group.
+            </h2>
+            <p style={{ color: 'var(--parchment-dim)', fontSize: 16, maxWidth: 520, margin: '0 0 24px' }}>
+              Search any Canadian park, find nearby trails, plan every meal day-by-day, and get
+              a grocery list built to match — plus a link straight to the real booking site.
+            </p>
+            <Button href="/trip-planner" variant="primary">Plan your trip →</Button>
           </div>
         </section>
 
